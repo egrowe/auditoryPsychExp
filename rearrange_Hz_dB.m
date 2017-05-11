@@ -1,3 +1,8 @@
+%% -----------------------------------------------------------------------%
+%-------------------- Rearrange Results Matrix (Hz/dB) -------------------%
+%----------- Change format of Matrix when in Hz and dB format ------------%
+%-------------------------------------------------------------------------%
+
 %% Plot results using imagesc according to Hz
 clear all
 load('FINAL_Elise_RESULTS_allTrials.mat', 'resultsMatrix')

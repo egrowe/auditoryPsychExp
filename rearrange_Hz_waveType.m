@@ -1,9 +1,13 @@
+%% -----------------------------------------------------------------------%
+%------------------ Rearrange Results Matrix (Hz/Wave) -------------------%
+%--------- Change format of Matrix when in Hz and Wave format ------------%
+%-------------------------------------------------------------------------%
+
 %% Plot results using imagesc according to Hz
 clear all
 load('FINAL_Elise_RESULTS_allTrials.mat', 'resultsMatrix')
 
 create_Hz_fig(resultsMatrix)
-
 
 %% Plot results using imagesc according to wavetype
 clear all
