@@ -1,4 +1,3 @@
-%function runExp(pNo,block)
 %% -----------------------------------------------------------------------%
 %------------------ Auditory Perception Task (Qualia) ------------------%
 %-------------- Testing Likeness of Auditory Experience ----------------%
@@ -15,55 +14,48 @@ Priority(2); %set priority in Matlab to ensure timing precision
 ListenChar(2); % prevent output from keypresses displayed in command window
 
 %% ---------------------------------------------------------------------%
-%------------------------- INITIALISE SCREEN ---------------------------%
+%----------------- INITIALISE SCREEN & ADD PARAMETERS ------------------%
 %-----------------------------------------------------------------------%
 Screen('Preference', 'SkipSyncTests', 1);
-[windowPtr, rect] = Screen('OpenWindow', 0, 1);%, [0 0 500 500]);
-Cfg.windowPtr = windowPtr;
-Cfg.winRect = rect; Cfg.width = rect(3); Cfg.height = rect(4);
-Cfg.xCentre = rect(3)/2; Cfg.yCentre = rect(4)/2; Cfg.black = [0 0 0];
-Cfg.WinColor = [0 0 0]; Cfg.white = [255 255 255]; Cfg.gray = [130 130 130];
-HideCursor;
+[windowPtr, rect] = Screen('OpenWindow', 0, 1);%, [0 0 500 500]); %uncomment parentheses for editing
+Cfg.windowPtr = windowPtr; %window pointer number
+Cfg.winRect = rect; Cfg.width = rect(3); Cfg.height = rect(4); %determine screen size
+Cfg.xCentre = rect(3)/2; Cfg.yCentre = rect(4)/2; Cfg.black = [0 0 0]; %setup colours
+Cfg.WinColor = [0 0 0]; Cfg.white = [255 255 255]; Cfg.gray = [130 130 130]; %setup colours
+HideCursor; %hide cursor from screen
 
-%% ---------------------------------------------------------------------%
-%---------------------- LOAD EXPERIMENTAL PARAMETERS -------------------%
-%-----------------------------------------------------------------------%
 t = clock;
-%rng(t(3) * t(4) * t(5),'twister')
+rng(t(3) * t(4) * t(5),'twister'); %setup the random number generator accoriding to clock
 Cfg.aux_buffer = 0;
-
-%Set the size of the text displayed to participants
-Screen('TextSize',Cfg.windowPtr,20);
+Screen('TextSize',Cfg.windowPtr,20); %%Set the size of the text displayed to participants
 
 %-----------------------------------------------------------------------%
 %% --------------------- SETUP THE STIMULUS TABLE ----------------------%
 %-----------------------------------------------------------------------%
+freqs = [250,500,630,800,1000,1250,1600,2000,2500,3150,5040,8000]; %all freqs
+nFreq = length(freqs); % number freqs
 
-freqs = [250,500,630,800,1000,1250,1600,2000,2500,3150,5040,8000];
-nFreq = length(freqs);
+dB = [11, 21, 31, 41, 51, 61]; %all dBs
+ndB = length(dB); % number dBs
 
-dB = [11, 21, 31, 41, 51, 61];
-ndB = length(dB);
+ntotalStim = nFreq*ndB; %total number of stimuli to be presented
 
-ntotalStim = nFreq*ndB;
-
-stimMatrix = triu(ones(ntotalStim,ntotalStim),0); %select freqs out of here!
-%load('newStimMatrix.mat')
-
+stimMatrix = triu(ones(ntotalStim,ntotalStim),0); %select freqs out of here! (half matrix)
+%load('newStimMatrix.mat') %use this if concatenating multiple sessions
 resultsMatrix = zeros(ntotalStim,ntotalStim); %setup to record responses to freqs
 %load('Elise_5068_TrialsComplete.mat','resultsMatrix')
-%resultsMatrix = combMatrix;
+%resultsMatrix = combMatrix; %use this if concatenating multiple sessions
 
 %The above sets some freqs to be the same as the order is not important
-[row,col] = find(stimMatrix);
-nPairs = length(row);
+[row,col] = find(stimMatrix); % finds trial coordinates (r,c)
+nPairs = length(row); % number of trials
 
 for ii = 1:nPairs
-    stimPairings{ii} = [row(ii),col(ii)];
+    stimPairings{ii} = [row(ii),col(ii)]; %pair all rows and columns
 end
 
-orderStim = randperm(nPairs);
-noTrials = nPairs;
+orderStim = randperm(nPairs); %randomly order pairs for presentation to participant
+noTrials = nPairs; % number of trials
 
 
 %% ---------------------------------------------------------------------%
@@ -78,11 +70,8 @@ end
 
 %Give instructions to participants about which ear to attend depending on which trial type is selected
 DrawFormattedText(Cfg.windowPtr, 'Pay attention to the TWO tones and rate their similarity', 'center', Cfg.yCentre, [255 255 255]);
-%Screen('DrawText', Cfg.windowPtr, 'Pay attention to the TWO tones and rate their similarity', ...
-%    Cfg.xCentre-370, Cfg.yCentre, [255 255 255]);
-
 Screen('Flip', Cfg.windowPtr, [], Cfg.aux_buffer);
-KbWait();
+KbWait(); %wait for keyboard press
 
 %Blank screen (clear previous text)
 Screen('FillRect', Cfg.windowPtr, 0);
@@ -93,7 +82,7 @@ end
 %Ready screen
 DrawFormattedText(Cfg.windowPtr, 'Ready... Press SPACE BAR to continue', 'center', Cfg.yCentre, [255 255 255]);
 Screen('Flip', Cfg.windowPtr, [], Cfg.aux_buffer);
-KbWait();
+KbWait(); %wait for keyboard press
 
 %Blank screen
 Screen('FillRect', Cfg.windowPtr, 0);
