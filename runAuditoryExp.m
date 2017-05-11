@@ -109,23 +109,34 @@ end
 cd('/Users/egrow1/Desktop/AuditoryPsych_Exp/auditoryStim')
 InitializePsychSound;
 
-for trialNo = 1:5%noTrials
+for trialNo = 1:noTrials
     % Stim table that randomly cycles through tone pairs
-    toneCoords = stimPairings{orderStim(trialNo)};
+    toneCoords = stimPairings{orderStim(trialNo)}; %all coordinates of tone pairings
     
     % SETUP FOR TONE A
-    freqToneA = freqs(ceil(toneCoords(1)/ndB)); %Frequency
-    dBToneA = dB((toneCoords(1)-((ceil(toneCoords(1)/ndB))*ndB))+ndB);    
+    freqToneA = freqs(ceil(toneCoords(1)/ndB)); %Frequency name
+    dBToneA = dB((toneCoords(1)-((ceil(toneCoords(1)/ndB))*ndB))+ndB); %dB name    
     
     % SETUP FOR TONE B
-    freqToneB = freqs(ceil(toneCoords(2)/ndB)); %Frequency
-    dBToneB = dB((toneCoords(2)-((ceil(toneCoords(2)/ndB))*ndB))+ndB);    
+    freqToneB = freqs(ceil(toneCoords(2)/ndB)); %Frequency name
+    dBToneB = dB((toneCoords(2)-((ceil(toneCoords(2)/ndB))*ndB))+ndB); %dB name  
 
     %Load the appropriate wav file for the block depending on trialBlock
     [toneA, FsA] = audioread(sprintf('%dHz_%ddB.wav',freqToneA,dBToneA));
-    toneA = [toneA, toneA];
+    
+    if toneA(1,:) == 1 %sometimes tones are only mono (1 column) (need stereo, 2 columns)
+        toneA = [toneA, toneA];
+    else
+        continue
+    end
+    
     [toneB, FsB] = audioread(sprintf('%dHz_%ddB.wav',freqToneB,dBToneB));
-    toneB = [toneB, toneB];
+    
+    if toneB(1,:) == 1
+        toneB = [toneB, toneB];
+    else
+        continue
+    end
     
     % Different frequency rates for different sound files! IMPORTANT for playback timing
     pahandle = PsychPortAudio('Open', [], [], 2, FsA, 2);
@@ -135,14 +146,16 @@ for trialNo = 1:5%noTrials
     %-----------------------------------------------------------------------%
     
     %Fill audio buffer with the trial sound to be played
-    PsychPortAudio('FillBuffer', pahandle, toneA'); % TONE A PLAY
-    PsychPortAudio('Start', pahandle, [], [], 1);
-    WaitSecs(0.5);
+    PsychPortAudio('FillBuffer', pahandle, toneA'); % Tone A in buffer
+    PsychPortAudio('Start', pahandle, [], [], 1); %Tone B play
+    WaitSecs(0.5); %500 ms ISI
     
-    PsychPortAudio('DeleteBuffer');
-    PsychPortAudio('FillBuffer', pahandle, toneB'); % TONE B PLAY
-    PsychPortAudio('Start', pahandle, [], [], 1);
-    WaitSecs(0.5);
+    PsychPortAudio('DeleteBuffer'); %clear the audio buffer
+    PsychPortAudio('FillBuffer', pahandle, toneB'); % Tone B in buffer
+    PsychPortAudio('Start', pahandle, [], [], 1); %Tone B play
+    WaitSecs(0.5); %500 ms wait time
+    
+    PsychPortAudio('DeleteBuffer'); % clear the audio buffer
     %     %% ---------------------------------------------------------------------%
     %     %----------- RECORD RESPONSE TO 8AFC AFTER EACH TRIAL ------------------%
     %     %-----------------------------------------------------------------------%
@@ -152,7 +165,7 @@ for trialNo = 1:5%noTrials
     
     ShowCursor;
     
-    Cfg = response_screen(Cfg,question_string,'SAME','DIFFERENT');
+    Cfg = response_screen(Cfg,question_string,'SIMILAR','DIFFERENT');
     
     WaitSecs(.3);
     
@@ -223,7 +236,7 @@ for trialNo = 1:5%noTrials
     % Define response to TR
     if keyid == -1
         % Response on left: 'present'
-        TR(trialNo).mouseResponsesPer = 'SAME';
+        TR(trialNo).mouseResponsesPer = 'SIMILAR';
         
     elseif keyid == 1
         % Response on right: 'absent'
@@ -243,6 +256,7 @@ for trialNo = 1:5%noTrials
     resultsMatrix(toneCoords(1),toneCoords(2)) = partResponse; %exact tone seq.
     resultsMatrix(toneCoords(2),toneCoords(1)) = partResponse; %opposite tone seq.
     
+    %Ensure tones are deleted and audio buffer cleared before next trial
     clear toneA
     clear toneB
     PsychPortAudio('DeleteBuffer');
@@ -250,8 +264,6 @@ for trialNo = 1:5%noTrials
     WaitSecs(1);
     
 end
-
-%end
 
 %Close the audio driver
 PsychPortAudio('Close', pahandle);
@@ -280,12 +292,12 @@ WaitSecs(2);
 % ----------------------------------------------------------------------%%
 
 %UPDATE the Stimulus Matrix with the trials we just completed and save
-row = 72
-col = 72
+%(when concatenating pilot tests this is useful -- not in real teasting
+%situation)
 
-for RR = 1:row
+for RR = 1:length(ntotalStim)
     
-    for CC = 1:col
+    for CC = 1:length(ntotalStim)
         
         if resultsMatrix(RR,CC) ~= 0 %|| resultsMatrix(RR,CC) > 0
             
