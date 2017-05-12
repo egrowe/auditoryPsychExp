@@ -18,11 +18,9 @@ for chooseFreq = 1:length(freqs)
         typeName = waveNames{chooseType}
         
         titlename = [num2str(currFreq) ' Hz ' num2str(typeName) ' Wave FFT']
-        filename = [num2str(currFreq) 'Hz_Type_' num2str(currType) '_FFT.jpg']
+        savename = [num2str(currFreq) 'Hz_Type_' num2str(currType) '_FFT_logy.jpg']
 
-        
-        %[y,Fs] = audioread('281.25Hz_4.wav');
-        
+                
         [y,Fs] = audioread(sprintf('%gHz_%d.wav',currFreq,currType))
         
         Nsamps = length(y);
@@ -31,6 +29,7 @@ for chooseFreq = 1:length(freqs)
         %Do Fourier Transform
         y_fft = abs(fft(y));            %Retain Magnitude
         y_fft = y_fft(1:Nsamps/2);      %Discard Half of Points
+        y_fft = log(1+y_fft) %log transform
         f = Fs*(0:Nsamps/2-1)/Nsamps;   %Prepare freq data for plot
         
         %Plot Sound File in Time Domain
@@ -43,12 +42,12 @@ for chooseFreq = 1:length(freqs)
         %Plot Sound File in Frequency Domain
         figure(figCount)
         plot(f, y_fft)
-        xlim([0 1000])
+        xlim([0 2000])
         xlabel('Frequency (Hz)')
         ylabel('Amplitude')
         title(['Frequency Response of Tuning Fork: ' num2str(titlename)])
         
-        saveas(gcf, filename)
+        saveas(gcf, savename)
         
         figCount = figCount+1;
         clf; close all;
