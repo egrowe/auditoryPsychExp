@@ -2,9 +2,10 @@
 %------------------ Auditory Perception Task (Qualia) ------------------%
 %-------------- Testing Likeness of Auditory Experience ----------------%
 %-----------------------------------------------------------------------%
-
+clear all;
 %Written by Elise Rowe May 2017
 %PhD Project in Tsuchiya t-lab Monash Neuroscience of Consciousness
+
 %----------------------------------------------------------------------%
 %-------------- PARTICIPANT DETAILS & BLOCK SELECTION ------------------%
 %-----------------------------------------------------------------------%
@@ -31,24 +32,30 @@ Screen('TextSize',Cfg.windowPtr,20); %%Set the size of the text displayed to par
 %-----------------------------------------------------------------------%
 %% --------------------- SETUP THE STIMULUS TABLE ----------------------%
 %-----------------------------------------------------------------------%
+freqs = [250,500,630,800,1000,1250,1600,2000,2500,3150,5040,8000]; %all freqs
+nFreq = length(freqs); % number freqs
 
-freqs = [250,500,630,800,1000,1250,1600,2000,2500,3150,5040,8000];
-nFreq = length(freqs);
+dB = [11, 21, 31, 41, 51, 61]; %all dBs
+ndB = length(dB); % number dBs
 
-stimMatrix = triu(ones(nFreq,nFreq),0); %select freqs out of here!
-resultsMatrix = zeros(nFreq,nFreq); %setup to record responses to freqs
+ntotalStim = nFreq*ndB; %total number of stimuli to be presented
+
+stimMatrix = triu(ones(ntotalStim,ntotalStim),0); %select freqs out of here! (half matrix)
+%load('newStimMatrix.mat') %use this if concatenating multiple sessions
+resultsMatrix = zeros(ntotalStim,ntotalStim); %setup to record responses to freqs
+%load('Elise_5068_TrialsComplete.mat','resultsMatrix')
+%resultsMatrix = combMatrix; %use this if concatenating multiple sessions
 
 %The above sets some freqs to be the same as the order is not important
-
-[row,col] = find(stimMatrix)
-nPairs = length(row)
+[row,col] = find(stimMatrix); % finds trial coordinates (r,c)
+nPairs = length(row); % number of trials
 
 for ii = 1:nPairs
-    stimPairings{ii} = [row(ii),col(ii)];
+    stimPairings{ii} = [row(ii),col(ii)]; %pair all rows and columns
 end
 
-orderStim = randperm(nPairs);
-noTrials = nPairs;
+orderStim = randperm(nPairs); %randomly order pairs for presentation to participant
+noTrials = nPairs; % number of trials
 
 
 %% ---------------------------------------------------------------------%
@@ -63,11 +70,8 @@ end
 
 %Give instructions to participants about which ear to attend depending on which trial type is selected
 DrawFormattedText(Cfg.windowPtr, 'Pay attention to the TWO tones and rate their similarity', 'center', Cfg.yCentre, [255 255 255]);
-%Screen('DrawText', Cfg.windowPtr, 'Pay attention to the TWO tones and rate their similarity', ...
-%    Cfg.xCentre-370, Cfg.yCentre, [255 255 255]);
-
 Screen('Flip', Cfg.windowPtr, [], Cfg.aux_buffer);
-KbWait();
+KbWait(); %wait for keyboard press
 
 %Blank screen (clear previous text)
 Screen('FillRect', Cfg.windowPtr, 0);
@@ -76,9 +80,9 @@ for m = 1 : 60 % In Frames! (eg 60hz = 15 = 250ms)
 end
 
 %Ready screen
-DrawFormattedText(Cfg.windowPtr, 'Ready...', 'center', Cfg.yCentre, [255 255 255]);
+DrawFormattedText(Cfg.windowPtr, 'Ready... Press SPACE BAR to continue', 'center', Cfg.yCentre, [255 255 255]);
 Screen('Flip', Cfg.windowPtr, [], Cfg.aux_buffer);
-KbWait();
+KbWait(); %wait for keyboard press
 
 %Blank screen
 Screen('FillRect', Cfg.windowPtr, 0);
@@ -91,42 +95,61 @@ end
 %----------------------- START OF EXPERIMENT ---------------------------%
 %--------------------- Start of Auditory Trials ------------------------%
 %-----------------------------------------------------------------------%
-cd('/Users/EliseRowe/Desktop/AuditoryPsych_Exp/oldAuditoryStim')
+cd('/Users/egrow1/Desktop/AuditoryPsych_Exp/auditoryStim')
 InitializePsychSound;
 
 for trialNo = 1:noTrials
+    % Stim table that randomly cycles through tone pairs
+    toneCoords = stimPairings{orderStim(trialNo)}; %all coordinates of tone pairings
+    
+    % SETUP FOR TONE A
+    freqToneA = freqs(ceil(toneCoords(1)/ndB)); %Frequency name
+    dBToneA = dB((toneCoords(1)-((ceil(toneCoords(1)/ndB))*ndB))+ndB); %dB name    
+    
+    % SETUP FOR TONE B
+    freqToneB = freqs(ceil(toneCoords(2)/ndB)); %Frequency name
+    dBToneB = dB((toneCoords(2)-((ceil(toneCoords(2)/ndB))*ndB))+ndB); %dB name  
+
+    %Load the appropriate wav file for the block depending on trialBlock
+    [toneA, FsA] = audioread(sprintf('%dHz_%ddB.wav',freqToneA,dBToneA));
+    
+    if toneA(1,:) == 1 %sometimes tones are only mono (1 column) (need stereo, 2 columns)
+        toneA = [toneA, toneA];
+    else
+        continue
+    end
+    
+    [toneB, FsB] = audioread(sprintf('%dHz_%ddB.wav',freqToneB,dBToneB));
+    
+    if toneB(1,:) == 1
+        toneB = [toneB, toneB];
+    else
+        continue
+    end
     
     % Different frequency rates for different sound files! IMPORTANT for playback timing
-    sampRateTones = 41400 %sampling rate of the pure tones (kHz)
-    pahandle = PsychPortAudio('Open', [], [], 2, sampRateTones, 2);
-    
-    % Stim table that randomly cycles through tone pairs
-    toneCoords = stimPairings{orderStim(trialNo)}
-    
-    firstTone = freqs(toneCoords(1)) %tone 1
-    secondTone = freqs(toneCoords(2)) % tone 2
-    
-    %Load the appropriate wav file for the block depending on trialBlock
-    [toneA, FsA] = audioread(sprintf('%d_Hz.wav',firstTone));
-    [toneB, FsB] = audioread(sprintf('%d_Hz.wav',secondTone));
+    pahandle = PsychPortAudio('Open', [], [], 2, FsA, 2);
     
     %% ---------------------------------------------------------------------%
     %--- Setup the Timing Structure to Record Responses and Send Triggers --%
     %-----------------------------------------------------------------------%
     
     %Fill audio buffer with the trial sound to be played
-    PsychPortAudio('FillBuffer', pahandle, toneA'); % TONE A PLAY
-    PsychPortAudio('Start', pahandle, [], [], 1);
-    WaitSecs(0.5);
+    PsychPortAudio('FillBuffer', pahandle, toneA'); % Tone A in buffer
+    PsychPortAudio('Start', pahandle, [], [], 1); %Tone B play
+    WaitSecs(0.5); %500 ms ISI
     
-    PsychPortAudio('FillBuffer', pahandle, toneB'); % TONE B PLAY
-    PsychPortAudio('Start', pahandle, [], [], 1);
-    WaitSecs(0.5);
-%     %% ---------------------------------------------------------------------%
-%     %----------- RECORD RESPONSE TO 8AFC AFTER EACH TRIAL ------------------%
-%     %-----------------------------------------------------------------------%
-%     
-%     %present the 8AFC screen
+    PsychPortAudio('DeleteBuffer'); %clear the audio buffer
+    PsychPortAudio('FillBuffer', pahandle, toneB'); % Tone B in buffer
+    PsychPortAudio('Start', pahandle, [], [], 1); %Tone B play
+    WaitSecs(0.5); %500 ms wait time
+    
+    PsychPortAudio('DeleteBuffer'); % clear the audio buffer
+    %     %% ---------------------------------------------------------------------%
+    %     %----------- RECORD RESPONSE TO 8AFC AFTER EACH TRIAL ------------------%
+    %     %-----------------------------------------------------------------------%
+    %
+    %     %present the 8AFC screen
     question_string = sprintf('How similar or different were the two sounds?');
     
     ShowCursor;
@@ -155,13 +178,13 @@ for trialNo = 1:noTrials
         idx_pos_right = find(idxs_right == 1);
         
         if sum(idx_pos_left) > 0
-            [kk, valuePos] = find(idxs_left == 1)
-            possResp = [1 2 3 4]
-            partResponse = possResp(valuePos)
+            [kk, valuePos] = find(idxs_left == 1);
+            possResp = [1 2 3 4];
+            partResponse = possResp(valuePos);
         elseif sum(idx_pos_right) > 0
-            [kk,valuePos] = find(idxs_right == 1)
-            possResp = [-1 -2 -3 -4]
-            partResponse = possResp(valuePos)
+            [kk,valuePos] = find(idxs_right == 1);
+            possResp = [-1 -2 -3 -4];
+            partResponse = possResp(valuePos);
         end
         
         % Left boxes click . %% NEED TO ASSIGN 1-4 rating!!
@@ -219,18 +242,17 @@ for trialNo = 1:noTrials
     %the diagonal)
     
     % UPDATE MATRIX
-    resultsMatrix(toneCoords(1),toneCoords(2)) = partResponse %exact tone seq.
-    resultsMatrix(toneCoords(2),toneCoords(1)) = partResponse %opposite tone seq.
+    resultsMatrix(toneCoords(1),toneCoords(2)) = partResponse; %exact tone seq.
+    resultsMatrix(toneCoords(2),toneCoords(1)) = partResponse; %opposite tone seq.
     
+    %Ensure tones are deleted and audio buffer cleared before next trial
     clear toneA
     clear toneB
+    PsychPortAudio('DeleteBuffer');
     
     WaitSecs(1);
-
+    
 end
-
-
-%end
 
 %Close the audio driver
 PsychPortAudio('Close', pahandle);
@@ -246,7 +268,6 @@ for m = 1 : 60 % In Frames! (eg 60hz = 15 = 250ms)
 end
 
 
-
 %% ---------------------------------------------------------------------%
 %---------------- END EXPERIMENT: Clean up and go home -----------------%
 %-----------------------------------------------------------------------%
@@ -259,7 +280,26 @@ WaitSecs(2);
 % -------------------- Using SubjNo and TrialBlock ----------------------%
 % ----------------------------------------------------------------------%%
 
-%save(datafilename, 'TR', 'stimPairings', 'stimMatrix', 'resultsMatrix', 'freqs', 'orderStim'); %save all files for the subject
+%UPDATE the Stimulus Matrix with the trials we just completed and save
+%(when concatenating pilot tests this is useful -- not in real teasting
+%situation)
 
+for RR = 1:length(ntotalStim)
+    
+    for CC = 1:length(ntotalStim)
+        
+        if resultsMatrix(RR,CC) ~= 0 %|| resultsMatrix(RR,CC) > 0
+            
+            stimMatrix(RR,CC) = 0;
+        end
+        
+    end
+end
+
+trialsComplete = length(find(stimMatrix == 0))
+
+filename = ['Elise_' num2str(trialsComplete) '_TrialsComplete.mat']
+%save(datafilename, 'TR', 'stimPairings', 'stimMatrix', 'resultsMatrix', 'freqs', 'orderStim'); %save all files for the subject
+save(filename)%, 'resultsMatrix')
 % Clear all - viola! All done! (test for accuracy using getAccuracy_x.m)
 sca
